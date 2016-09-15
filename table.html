@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html>
+<head>
+	  <meta http-equiv="Access-Control-Allow-Origin" content="*"/>
+    <!-- to make IE happy -->
+      <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+      <meta charset="UTF-8">    
+      <title>My Books</title>
+      <link rel="stylesheet" type="text/css" href="table.css">
+      <link href="http://code.jquery.com/ui/1.10.4/themes/ui-lightness/jquery-ui.css" rel="stylesheet">
+      <script src="http://code.jquery.com/jquery-1.10.2.js"></script>
+      <script src="http://code.jquery.com/ui/1.10.4/jquery-ui.js"></script>
+</head>
+<body>    
+<!-- 
+the html file for an application which may add/chg/delete/display/search into a table with some 
+text fields (possible in some language - besides english, and some fields of options
+  
+the boxes for special characters of each language are defined here  
+-->    
+    <script type="text/javascript" src="books.js"></script>
+    <script>
+        $( window ).resize(function() {
+            $( "#tbl" ).resizable();
+        });
+        $(function() {
+            $( "#tbl" ).resizable();
+        });
+    </script>
+    <!--romanian special characters box -->
+    <div id="ro" style="display:none">
+    <h3>Rom&#226n&#259</h3>
+    <div class=parentbox>
+        <button class="kbutton" onclick="manageText.echoletter('&#259')">&#259</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#226')">&#226</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#238')">&#238</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#351')">&#351</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#355')">&#355</button>
+        &nbsp&nbsp&nbsp<input type="image" src="arrow_up.png" onclick="manageText.setcapital()"></>
+        &nbsp&nbsp&nbsp<button class="space" style="width:75%" onclick="manageText.echoletter(' ')">space</button>
+        &nbsp&nbsp&nbsp&nbsp&nbsp&nbsp<button class="X"  onclick="lang_hide('ro')">X</button>
+    </div>                            
+    </div>
+    <!-- french special characters box -->
+    <div id="fr" style="display:none">
+    <h3>Fran&#231aise</h3>
+    <div class=parentbox>
+        <button class="kbutton" onclick="manageText.echoletter('&#224')">&#224</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#226')">&#226</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#230')">&#230</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#231')">&#231</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#232')">&#232</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#233')">&#233</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#234')">&#234</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#235')">&#235</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#236')">&#236</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#238')">&#238</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#244')">&#244</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#156')">&#156</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#249')">&#249</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#251')">&#251</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#252')">&#252</button>
+        &nbsp&nbsp&nbsp<input type="image" src="arrow_up.png" onclick="manageText.setcapital()"></>
+        &nbsp&nbsp&nbsp<button class="space" style="width:75%" onclick="manageText.echoletter(' ')">space</button>
+        &nbsp&nbsp&nbsp&nbsp&nbsp&nbsp<button class="X"  onclick="lang_hide('fr')">X</button>
+    </div>
+    </div>
+    <!-- russian special characters box -->
+    <div id="ru" style="display:none">
+    <h3>&#1056&#1091&#1089&#1082&#1081</h3>
+    <div class=parentbox>
+        <button class="kbutton" onclick="manageText.echoletter('&#1072')">&#1072</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#1073')">&#1073</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#1074')">&#1074</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#1075')">&#1075</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#1076')">&#1076</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#1077')">&#1077</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#1078')">&#1078</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#1079')">&#1079</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#1080')">&#1080</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#1081')">&#1081</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#1082')">&#1082</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#1083')">&#1083</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#1084')">&#1084</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#1085')">&#1085</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#1086')">&#1086</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#1087')">&#1087</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#1088')">&#1088</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#1089')">&#1089</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#1090')">&#1090</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#1091')">&#1091</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#1092')">&#1092</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#1093')">&#1093</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#1094')">&#1094</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#1095')">&#1095</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#1096')">&#1096</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#1097')">&#1097</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#1098')">&#1098</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#1099')">&#1099</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#1100')">&#1100</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#1101')">&#1101</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#1102')">&#1102</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#1103')">&#1103</button>
+        &nbsp&nbsp&nbsp<input type="image" src="arrow_up.png" onclick="manageText.setcapital()">
+        &nbsp&nbsp&nbsp<button class="space" onclick="manageText.echoletter(' ')">space</button>
+        &nbsp&nbsp&nbsp&nbsp&nbsp&nbsp<button class="X"  onclick="lang_hide('ru')">X</button>
+    </div>
+    </div>
+    <!--hebrew special characters box -->
+    <div id="he" style="display:none">
+    <h3>&#1506&#1489&#1512&#1497&#1514</h3>
+    <div class=parentbox>
+        <button class="kbutton" onclick="manageText.echoletter('&#1488')">&#1488</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#1489')">&#1489</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#1490')">&#1490</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#1491')">&#1491</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#1492')">&#1492</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#1493')">&#1493</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#1494')">&#1494</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#1495')">&#1495</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#1496')">&#1496</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#1497')">&#1497</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#1498')">&#1498</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#1499')">&#1499</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#1500')">&#1500</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#1501')">&#1501</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#1502')">&#1502</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#1503')">&#1503</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#1504')">&#1504</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#1505')">&#1505</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#1506')">&#1506</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#1507')">&#1507</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#1508')">&#1508</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#1509')">&#1509</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#1510')">&#1510</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#1511')">&#1511</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#1512')">&#1512</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#1513')">&#1513</button>
+        <button class="kbutton" onclick="manageText.echoletter('&#1514')">&#1514</button>
+        &nbsp&nbsp&nbsp<button class="space" style="width:43%" onclick="manageText.echoletter(' ')">space</button>
+        &nbsp&nbsp&nbsp&nbsp&nbsp&nbsp<button class="X"  onclick="lang_hide('he')">X</button>
+    </div>
+    </div>
+    <!-- main table section -->
+    <h1>My Books</h1>     
+    <img src="index.jpg" style="position:fixed; top:10px;left:10px;"> 
+<!-- the table has :
+column 1 - ordinal number, the index into the table
+column 2 ... N - the language dependendet fields; when adding or changeing each logical column has
+         2 physical columns : one is for text and one is to choose the language
+coulumn N+1 ... M - the choice fields
+the last column in for commands : add/del/chg -->
+    <div id="tblid">
+    <table id="tbl"  class="ui-widget-content">
+    <thead>
+    <tr style="background-color:GoldenRod">
+      <th>No</th>
+    </thead>
+    </tr>
+    </table>
+    </div>    
+    
+<!-- Actions on the table:
+  - display the content sorted by some criterias:
+  * alphabetically on the first field 
+  * alphabetically on the second field 
+  * apply filter for : 
+     * specific language of the first field
+     * any option of the first field of the selections
+  - the result of the display might be stored into a file -->   
+  
+    <!-- selections for display -->
+    <button class=btn_store onclick="return displayTable.setStore();">Store</button>
+    <select id="f1" onchange="return displayTable.setsort()"> 
+        <option value="none" selected="selected">Sorting</option>
+        <option value="filter" >Filter</option>
+    </select>
+    <!-- options for filters -->
+    <div id="filter" style="display:none">
+        <select id="filterlang" onchange="return displayTable.setlang()"> 
+            <option value="none" selected="selected">Language</option>
+            <option value="en">English</option>
+            <option value="ro">Romanian</option>
+            <option value="fr">French</option>
+            <option value="ru">Russian</option>
+            <option value="he">Hebrew</option>
+        </select>
+    </div>
+    <!-- submit filter/display options -->
+    <button class=btn_submit onclick="return displayTable.showLine(false);">Submit</button>
+    
+<!-- Actions on the table:
+  - search a row which contains a given string into any of the language fields
+-->   
+  
+    <!-- selections for search -->
+    <select id="f2" onchange="return searchBook.setSearch();"> 
+        <option value="none" selected="selected">Search options</option>
+    </select>
+    <!-- options for search -->
+    <div id="searchcriteria" style="display:none">
+        <textarea id="searchtext" rows=2 cols=24></textarea>        
+        <select id="searchlang" onchange="return searchBook.setSearchLang('searchtext');"> 
+            <option value="none" selected="selected">none</option>
+            <option value="en">English</option>
+            <option value="ro">Romanian</option>
+            <option value="fr">French</option>
+            <option value="ru">Russian</option>
+            <option value="he">Hebrew</option>
+        </select>
+       <!-- submit search options -->
+       <button class=btn_submit_search onclick="return searchBook.searchBook();">Submit</button>
+    </div>
+    
+    <!-- execute on load of the page - display all books sorted by first field -->
+    <script>window.onload = function() {
+        initHTML(); 
+        manageText.init();
+        displayTable.init();
+        displayTable.showLine(true);}
+        </script>
+</body>
+</html> 
+

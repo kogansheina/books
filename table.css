@@ -1,0 +1,155 @@
+table 
+{
+    border: 1px solid black;
+    border-collapse: collapse;
+    /*table-layout: fixed; to permit resize */
+}    
+td 
+{
+    border: 1px solid black;
+    border-collapse: collapse;
+    padding: 5px;
+    text-align: left;
+}
+th 
+{
+    border: 1px solid black;
+    border-collapse: collapse;
+    text-align: center;
+}
+table tr:nth-child(even) 
+{
+    background-color: Bisque;
+}
+table tr:nth-child(odd) 
+{
+    background-color: Cornsilk;
+}
+h1
+{
+    position:fixed; 
+    top:50px;
+    left:12%;
+}
+#tblid
+{
+    position:fixed; 
+    top:280px;
+    left:10px; 
+    overflow-y:scroll;
+    overflow: auto;
+    overflow-x:hidden;
+    height:570px;
+    width: 96%;
+}
+.btn_store
+{
+    position:absolute; 
+    top:20px;
+    right:18%; 
+    color:brown;
+}
+.btn_submit
+{
+    position:absolute; 
+    top:20px;
+    right:10%; 
+    color:brown;
+}
+.btn_submit_search
+{
+    position:absolute; 
+    top:110px;
+    right:10%; 
+    color:brown;
+}
+#filterlang 
+{
+    position:absolute; 
+    top:50px;
+    right:35%; 
+    color:green;
+}
+#filtertypetype
+{    
+    position:absolute; 
+    top:50px;
+    color:green;
+    right:27%; 
+}
+#f1 /* sort button */
+{    
+    position:absolute; 
+    top:20px;
+    color:green;
+    right:25%; 
+}
+#f2 /* search button */
+{    
+    position:absolute; 
+    top:80px;
+    color:green;
+    right:24%; 
+}
+#searchtext /* search textarea */
+{    
+    position:absolute; 
+    top:110px;
+    right:22%;
+}
+#searchlang /* search textarea alng */
+{    
+    position:absolute; 
+    top:110px;
+    right:15%;
+}
+
+.kbutton 
+{
+    width: 20%;     
+    height: 15%;    
+    border-style: ridge;
+    border-width: 2px;
+    padding: 3px;
+    text-align: center;
+}
+.space 
+{
+    width: 40%;     
+    height: 15%;    
+    border-style: ridge;
+    border-width: 2px;
+    padding: 3px;
+    text-align: center;
+}
+.X 
+{
+    height: 15%;    
+    border-style: ridge;
+    border-width: 2px;
+    text-align: center;
+}
+.parentbox 
+{
+    display: -moz-box;
+    display: -ms-flexbox;
+    display: flex;
+    flex-wrap:wrap;
+    align-content: space-between;    
+    margin: 10px auto;
+    border-width: 2px;
+    border-style: solid;
+    border-color:navy;
+    width:35%;
+    position:absolute; right:40%;top:5.5%;
+}
+h3
+{   
+    position:relative; left:42%; top:60%;
+}
+img
+{
+    width:10%; 
+    height:30%;
+    position:absolute; bottom:5%; right:1%;
+}
