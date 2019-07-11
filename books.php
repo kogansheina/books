@@ -1,4 +1,19 @@
-<?php header('Content-Type: text/html; application/json; Content-Encoding: "DEFLATE"; charset=utf-8;Access-Control-Allow-Origin: *;');
+<?php 
+header('Content-Type: text/html; application/json; Content-Encoding: "DEFLATE"; charset=utf-8');
+if (isset($_SERVER['HTTP_ORIGIN'])) {
+    //header("Access-Control-Allow-Origin: {$_SERVER['HTTP_ORIGIN']}");
+    header("Access-Control-Allow-Origin: *");
+    //header('Access-Control-Allow-Credentials: true');    
+    header("Access-Control-Allow-Methods: GET, POST, OPTIONS"); 
+}   
+if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
+    if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_METHOD']))
+        header("Access-Control-Allow-Methods: GET, POST, OPTIONS");         
+    if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS']))
+        header("Access-Control-Allow-Headers:{$_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS']}");
+
+    exit(0);
+} 
 /*
 the server side of an application which may add/chg/delete/display/search into a table with some 
 text fields (possible in some language - besides english, and some fields of options
@@ -10,15 +25,15 @@ define("DBUSER","root");
 define("MYDB","mybooks");
 define("MYTABLE","books");
 // names of language dependent fields
-$GLOBALS['MYFIELDS'] = array('author','title','shortd');
+$GLOBALS['MYFIELDS'] = array('author','title');
 
 // names of not language dependent fields
 $GLOBALS['MYNOLANGFIELDS'] = array('type');
 
 // server names of languages fields
-$GLOBALS['MYLANGFIELDS'] = array('langa','langt','langs');
+$GLOBALS['MYLANGFIELDS'] = array('langa','langt');
 
-define("DEFAULTLANG","en");
+define("DEFAULTLANG","he");
 
 // selection values for used languages
 $GLOBALS['MYLANGUAGES'] = array('en','ro','ru','fr','he');
@@ -47,20 +62,37 @@ function compare_author($a, $b)
     
     return strcmp_from_utf8($a[$GLOBALS['MYFIELDS'][0]], $b[$GLOBALS['MYFIELDS'][0]]); 
 }
-function str_pad_unicode($str, $pad_len, $dir = STR_PAD_RIGHT) 
+
+function str_pad_unicode($str1, $pad_len1, $str2, $pad_len2,$dir = STR_PAD_RIGHT) 
 {
-    $str_len = mb_strlen($str);
+	$str_new1 = mb_convert_encoding($str1, "UTF-8");
+    $str_len1 = mb_strlen($str_new1);
+    $str_new2 = mb_convert_encoding($str2, "UTF-8");
+    $str_len2 = mb_strlen($str_new2);
+    $pad_str = mb_convert_encoding(' ', "UTF-8");
+ 
+    if ($pad_len1 <= $str_len1 || $pad_len2 <= $str_len2) {
+       return $str_new1.$str_new2;
+    }
+
     $result = null;
-    $repeat = $pad_len - $str_len;
+    $repeat1 = $pad_len1 - $str_len1;
+    $repeat2 = $pad_len2 - $str_len2;
     if ($dir == STR_PAD_RIGHT) 
     {
-        $result = $str.str_repeat(" ", $repeat);
+		$result = $str_new1;
+        $result .= str_repeat($pad_str, $repeat1);
+        $result .= "| ".$str_new2;
+        $result .= str_repeat($pad_str, $repeat2);
     } 
-    else if ($dir == STR_PAD_LEFT) 
+    else 
     {
-        $result = str_repeat(" ", $repeat).$str;
+		$result = str_repeat($pad_str, $repeat1);
+		$result .= $str_new2;
+        $result .= str_repeat($pad_str, $repeat2);
+        $result .= "| ".$str_new1;
     }
-    
+
     return $result;
 }
  
@@ -87,27 +119,54 @@ function displaybooks($sel1, $sel2, $store)
     if (!$db_selected)
     {
        exit('Error open ' .MYDB.' => '.mysqli_error($conn));		
-    } 
-
-    $sql="SELECT * FROM ".MYTABLE.";";    
+    }
+    $typ1 = $sel1;
+    $typ2 = $sel2;
+    if ($sel2 == 'none')
+    { 
+		if (substr($sel1,0,5) == 'type.')
+		{	
+			$typ1 = substr($sel1,5,strlen($sel1) - 5);
+			$sql="SELECT * FROM ".MYTABLE." where type='".$typ1."';";
+		}
+		else if (substr($sel1,0,5) == 'lang.')
+		{
+			$typ1 = substr($sel1,5,strlen($sel1) - 5);
+			$sql="SELECT * FROM ".MYTABLE." where langa='".$typ1."';";
+		}
+		else $sql="SELECT * FROM ".MYTABLE.";"; 
+	}
+	else
+	{
+		$typ1 = substr($sel1,5,strlen($sel1) - 5);
+		$typ2 = substr($sel2,5,strlen($sel2) - 5);
+		if (substr($sel1,0,5) == 'type.')	
+			$sql="SELECT * FROM ".MYTABLE." where type='".$typ1."' and langa='".$typ2."';";
+		else
+		    $sql="SELECT * FROM ".MYTABLE." where langa='".$typ1."' and type='".$typ2."';";		
+	}
+	//echo "sql=".$sql."<br>";   
     $rs=mysqli_query($conn,$sql);
     if (!$rs) 
     {
         exit("Error in ".MYTABLE." => ".mysqli_error($conn));
     }
     $array_to_sort = array();
+    $array_to_fetch = array();
     while ($row=mysqli_fetch_array($rs))
     {
         if (fit($row,$sel1,$sel2))
-        {
             array_push($array_to_sort,$row);
-        }
+        else
+			array_push($array_to_fetch,$row);
     }
     // sort alphabetically by name 
     if ($sel1 == 'title')
         usort($array_to_sort, 'compare_title');
-    else
+    else if ($sel1 == 'author')
         usort($array_to_sort, 'compare_author');
+	if (count($array_to_sort) == 0)
+		$array_to_sort = $array_to_fetch;
     $J = array();
     if ($store == 1)
     {
@@ -117,32 +176,36 @@ function displaybooks($sel1, $sel2, $store)
         {
             if (($sel1 != 'title') && ($sel1 != 'author')) 
             {
-                $f .= "_".substr($sel1,1);
+                $f .= "_".$sel1;
                 if ($sel2 != 'none')
-                    $f .= "_".substr($sel2,1);
+                    $f .= "_".$sel2;
             }
             else
             {
                 $f .= "_".$sel1;
             }
         }
-        $f .= ".doc";
+        $f .= ".csv";  // sheina
         if (file_exists($f))
         {
             chmod($f,0666); 
             unlink($f);
         }
-        $file = fopen($f, "w+");
+        $stra = "";
+		$stra .= strtoupper($GLOBALS['MYFIELDS'][0]).",".strtoupper($GLOBALS['MYFIELDS'][1])."\n";       
+        //$file = fopen($f, "w");
+        /*
         fwrite($file, pack("CCC",0xef,0xbb,0xbf)); // for UTF-8 support
-        fwrite($file, str_pad("|",72,"-")."|\n"); // top header
-        $col1 = "|".str_pad(strtoupper($GLOBALS['MYFIELDS'][0]),35," ",STR_PAD_BOTH);
-        $col2 = "|".str_pad(strtoupper($GLOBALS['MYFIELDS'][1]),35," ",STR_PAD_BOTH);
+        fwrite($file, str_pad("|",78,"=")."|\n"); // top header
+        $col1 = "|".str_pad(strtoupper($GLOBALS['MYFIELDS'][0]),38," ",STR_PAD_BOTH);
+        $col2 = "|".str_pad(strtoupper($GLOBALS['MYFIELDS'][1]),38," ",STR_PAD_BOTH);
         $line = $col1.$col2."|\n";
         fwrite($file, $line); 
-        fwrite($file, str_pad("|",72,"-")."|\n"); // bottom header
+        fwrite($file, str_pad("|",78,"=")."|\n"); // bottom header
+        */
     }
-    else
-        $file = null;
+    //else
+    //    $file = null;
     // for each record - check if it corresponds to the filter criteria
     // and store it into an associative array
     // if needed, write a record to the file
@@ -153,75 +216,51 @@ function displaybooks($sel1, $sel2, $store)
                    $GLOBALS['MYLANGFIELDS'][1]=>$b[$GLOBALS['MYLANGFIELDS'][1]],
                    $GLOBALS['MYFIELDS'][0]=>$b[$GLOBALS['MYFIELDS'][0]],
                    $GLOBALS['MYLANGFIELDS'][0]=>$b[$GLOBALS['MYLANGFIELDS'][0]],
-                   $GLOBALS['MYFIELDS'][2]=>$b[$GLOBALS['MYFIELDS'][2]],
-                   $GLOBALS['MYLANGFIELDS'][2]=>$b[$GLOBALS['MYLANGFIELDS'][2]],
                    $GLOBALS['MYNOLANGFIELDS'][0]=>$b[$GLOBALS['MYNOLANGFIELDS'][0]]);
         array_push($J,$a);
-        if ($file) 
+        if ($store == 1)
+        //if ($file)
+         
         {
-            $strt = "";
-            $stra = "";
-            $v = $b[$GLOBALS['MYFIELDS'][0]];
-            if ($b[$GLOBALS['MYLANGFIELDS'][0]] == 'en')
-                $stra = "| ".str_pad($v,34)."|";
-            else if ($b[$GLOBALS['MYLANGFIELDS'][0]] == 'he')
-                $stra = "| ".str_pad_unicode($v,34,STR_PAD_LEFT)." |";
+			$stra .= $b[$GLOBALS['MYFIELDS'][0]].",".$b[$GLOBALS['MYFIELDS'][1]]."\n";
+			/*
+            if ($b[$GLOBALS['MYLANGFIELDS'][0]] == 'he')
+            {
+				
+				$stra = "|".str_pad_unicode($b[$GLOBALS['MYFIELDS'][0]],37,
+                                            $b[$GLOBALS['MYFIELDS'][1]],37, 
+                                             STR_PAD_LEFT)." |\n";   
+			}
             else
-                $stra = "| ".str_pad_unicode($v,34)."|";
-            //$v = $b[$GLOBALS['MYFIELDS'][1]];
-            //if ($b[$GLOBALS['MYLANGFIELDS'][1]] == 'en')
-            //    $strt = "| ".str_pad($v,34)."|";
-            //else if ($b[$GLOBALS['MYLANGFIELDS'][1]] == 'he')
-            //    $strt = "| ".str_pad_unicode($v,34,STR_PAD_LEFT)." |";
-            //else
-            //    $strt = "| ".str_pad_unicode($v,34)."|";
-            fwrite($file,$stra.$strt."\n");
+            {
+                $stra = "| ".str_pad_unicode($b[$GLOBALS['MYFIELDS'][0]],37,
+                                             $b[$GLOBALS['MYFIELDS'][1]],37, 
+                                             STR_PAD_RIGHT)."|\n";                
+			}
+			fwrite($file,$stra);
+            fwrite($file, str_pad("|",78,"-")."|\n");
+            */ 
         }
     }
     // send as response the JSON string of the array of records
     echo json_encode($J);
-    if ($file) 
-    {
-        fwrite($file, str_pad("|",72,"-")."|\n"); // bottom table
-        fclose($file); 
-    }
+    if ($store == 1)
+    //if ($file)
+    { 
+		//echo $stra;
+		file_put_contents($f, $stra);
+        //fclose($file);
+	} 
 }
 // check the filters
 function fit($row, $sel1, $sel2)
 {
     if (($sel1 == $GLOBALS['MYFIELDS'][0]) || ($sel1 == $GLOBALS['MYFIELDS'][1]))
-        return true;
-    
-    if ($sel2 == 'none')
-    { /* only one filter */
-        if (substr($sel1,0,1) == 'k') /* all of the type */
-        {
-            if (substr($sel1,1) == $row[$GLOBALS['MYNOLANGFIELDS'][0]])
-                return true;
-        }
-        else /* suppose language */
-        {
-            if (substr($sel1,1) == $row[$GLOBALS['MYLANGFIELDS'][0]])
-                return true;
-        }
-    }
-    else
-    {
-        if (substr($sel1,0,1) == 'k') /* all of the type */
-        {
-            if ((substr($sel1,1) == $row[$GLOBALS['MYNOLANGFIELDS'][0]]) && (substr($sel2,1) == $row[$GLOBALS['MYLANGFIELDS'][0]]))
-                return true;
-        }
-        else
-        {
-            if ((substr($sel2,1) == $row[$GLOBALS['MYNOLANGFIELDS'][0]]) && (substr($sel1,1) == $row[$GLOBALS['MYLANGFIELDS'][0]]))
-                return true;
-        }
-    }
+        return true;    
     return false;
 }
 // add a new record
-function addBook($name, $langt, $author, $langa, $short, $langs, $type)
+function addBook($name, $langt, $author, $langa, $type)
 {
     $conn = mysqli_connect(constant("DBSERVER"),constant("DBUSER"),constant("DBPASSWORD"));
     $db_selected = mysqli_select_db($conn,MYDB);
@@ -240,8 +279,6 @@ function addBook($name, $langt, $author, $langa, $short, $langs, $type)
         " TEXT NOT NULL,".$GLOBALS['MYLANGFIELDS'][0].
         " TINYTEXT,".$GLOBALS['MYFIELDS'][1].
         " TEXT,".$GLOBALS['MYLANGFIELDS'][1].
-        " TINYTEXT,".$GLOBALS['MYFIELDS'][2].
-        " TEXT,".$GLOBALS['MYLANGFIELDS'][2].
         " TINYTEXT,".$GLOBALS['MYNOLANGFIELDS'][0].
         " TINYTEXT
     )engine=myisam ;";
@@ -249,8 +286,8 @@ function addBook($name, $langt, $author, $langa, $short, $langs, $type)
     {
         exit('Error creating '.MYTABLE.' table: ' .mysqli_error($conn) );		
     }
-    $names = array($author,$name,$short);
-    $langs = array($langa,$langt,$langs);
+    $names = array($author,$name);
+    $langs = array($langa,$langt);
     $strn = '';
     $strv = '';
     for ($i=0; $i < count($GLOBALS['MYFIELDS']); $i++)
@@ -287,7 +324,7 @@ function delBook($id)
        exit("Error Delete MySQL : ".mysqli_error($conn)." ".$id."<br>");
 }
 // change the record with the given id - set new values
-function chgBook($id,$name, $langt, $author, $langa, $short, $langs, $type)
+function chgBook($id,$name, $langt, $author, $langa, $type)
 {
     $conn = mysqli_connect(constant("DBSERVER"),constant("DBUSER"),constant("DBPASSWORD"));
     $db_selected = mysqli_select_db($conn,MYDB);
@@ -295,8 +332,8 @@ function chgBook($id,$name, $langt, $author, $langa, $short, $langs, $type)
     {
        exit('Error open '.MYDB.' : ' .mysqli_error($conn));		
     }
-    $names = array($author,$name,$short);
-    $langs = array($langa,$langt,$langs);
+    $names = array($author,$name);
+    $langs = array($langa,$langt);
     $str = '';
     for ($i=0; $i < count($GLOBALS['MYFIELDS']); $i++)
     {
@@ -400,7 +437,7 @@ function searchBook($criteria,$text,$lang)
     {
        exit('Error open '.MYDB.' : ' .mysqli_error($conn));		
     } 
-    $sql="SELECT * FROM ".MYTABLE.";";    
+    $sql="SELECT * FROM ".MYTABLE;     
     $rs=mysqli_query($conn,$sql);
     if (!$rs) 
     {
@@ -410,40 +447,142 @@ function searchBook($criteria,$text,$lang)
     $J = array();
     while ($b=mysqli_fetch_array($rs))
     {
-        if (($criteria == $GLOBALS['MYFIELDS'][1]) && ($lang == $b[$GLOBALS['MYLANGFIELDS'][1]]))
-            $tocompare = $b[$GLOBALS['MYFIELDS'][1]];
-        else if (($criteria == $GLOBALS['MYFIELDS'][0]) && ($lang == $b[$GLOBALS['MYLANGFIELDS'][0]]))
-            $tocompare = $b[$GLOBALS['MYFIELDS'][0]];
-        else if (($criteria == $GLOBALS['MYFIELDS'][2]) && ($lang == $b[$GLOBALS['MYLANGFIELDS'][2]]))
-            $tocompare = $b[$GLOBALS['MYFIELDS'][2]];
-        else
-            continue;
-        if ($tocompare != '')
-        {
-                if (mb_strstr($tocompare,$text) == false)
-                    continue;
-                else
-                {
-                    /* found a row, format it into a json format and store it */
-                    $a = array('rowid'=>$b['id'],$GLOBALS['MYFIELDS'][1]=>$b[$GLOBALS['MYFIELDS'][1]],
-                               $GLOBALS['MYLANGFIELDS'][1]=>$b[$GLOBALS['MYLANGFIELDS'][1]],
-                               $GLOBALS['MYFIELDS'][0]=>$b[$GLOBALS['MYFIELDS'][0]],
-                               $GLOBALS['MYLANGFIELDS'][0]=>$b[$GLOBALS['MYLANGFIELDS'][0]],
-                               $GLOBALS['MYFIELDS'][2]=>$b[$GLOBALS['MYFIELDS'][2]],
-                               $GLOBALS['MYLANGFIELDS'][2]=>$b[$GLOBALS['MYLANGFIELDS'][2]],
-                               $GLOBALS['MYNOLANGFIELDS'][0]=>$b[$GLOBALS['MYNOLANGFIELDS'][0]]);
-                    array_push($J,$a);
-                }
-        }
+		if (($criteria == $GLOBALS['MYFIELDS'][1]) && ($lang == $b[$GLOBALS['MYLANGFIELDS'][1]]))
+			$tocompare = strtolower($b[$GLOBALS['MYFIELDS'][1]]);
+		else if (($criteria == $GLOBALS['MYFIELDS'][0]) && ($lang == $b[$GLOBALS['MYLANGFIELDS'][0]]))
+			$tocompare = strtolower($b[$GLOBALS['MYFIELDS'][0]]);
+		else
+			continue;
+		if ($tocompare != '')
+		{
+			if (($text[0] != '*') && ($text[strlen($text)-1] != '*'))
+			{
+				if (mb_strstr($tocompare,strtolower($text)) == false)
+					continue;
+				else
+				{
+					/* found a row, format it into a json format and store it */
+					$a = array('rowid'=>$b['id'],$GLOBALS['MYFIELDS'][1]=>$b[$GLOBALS['MYFIELDS'][1]],
+							$GLOBALS['MYLANGFIELDS'][1]=>$b[$GLOBALS['MYLANGFIELDS'][1]],
+							$GLOBALS['MYFIELDS'][0]=>$b[$GLOBALS['MYFIELDS'][0]],
+							$GLOBALS['MYLANGFIELDS'][0]=>$b[$GLOBALS['MYLANGFIELDS'][0]],
+							$GLOBALS['MYNOLANGFIELDS'][0]=>$b[$GLOBALS['MYNOLANGFIELDS'][0]]);
+					array_push($J,$a);
+				}
+			}
+			else
+			{
+				if ($text[0] == '*')
+					$text = substr($text,1,strlen($text)-1);
+				if ($text[strlen($text)-1] == '*')
+					$text = substr($text,0,strlen($text)-2);
+				//echo $tocompare."=>".$text."<br>";
+				if (mb_strpos($tocompare,strtolower($text)) === false)
+					continue;
+				else
+				{
+					/* found a row, format it into a json format and store it */
+					$a = array('rowid'=>$b['id'],$GLOBALS['MYFIELDS'][1]=>$b[$GLOBALS['MYFIELDS'][1]],
+							$GLOBALS['MYLANGFIELDS'][1]=>$b[$GLOBALS['MYLANGFIELDS'][1]],
+							$GLOBALS['MYFIELDS'][0]=>$b[$GLOBALS['MYFIELDS'][0]],
+							$GLOBALS['MYLANGFIELDS'][0]=>$b[$GLOBALS['MYLANGFIELDS'][0]],
+							$GLOBALS['MYNOLANGFIELDS'][0]=>$b[$GLOBALS['MYNOLANGFIELDS'][0]]);
+					array_push($J,$a);
+				}	
+			}
+		}
     }
     // send as response the JSON string of the array of records
     echo json_encode($J);
-}    
+} 
+function backup($d)
+{
+    $conn = mysqli_connect(constant("DBSERVER"),constant("DBUSER"),constant("DBPASSWORD"));
+    $db_selected = mysqli_select_db($conn,$d);
+    if (!$db_selected)
+    {
+       exit('Error open '.$d.' : ' .mysqli_error($conn));		
+    }
+	$path = "./save_".$d."_".date("Y-m-d-H-i");
+	$sql="SELECT * FROM ".MYTABLE;     
+	$rs=mysqli_query($conn,$sql);
+	if (!$rs) 
+	{
+		exit("Error in ".$d." ".mysqli_error($conn));
+	}
+
+	$fp = fopen ($path,"w");
+	while ($b=mysqli_fetch_array($rs))
+	{
+		if ($b['langa'] == "he")
+			$nf = "he;";
+		else
+			$nf = "nh;";
+		$nf .= $b['author'].";";
+		$nf .= $b['langa'].";";
+		$nf .= $b['title'].";";
+		$nf .= $b['langt'].";";
+		$nf .= $b['type'].PHP_EOL;
+		fwrite ($fp,$nf);
+	}
+	
+	fclose ($fp);
+	echo "done";
+}
+function restore($f,$d)
+{
+	$conn = mysqli_connect(constant("DBSERVER"),constant("DBUSER"),constant("DBPASSWORD"));
+	$db_selected = mysqli_select_db($conn,$d);
+	if (!$db_selected)
+	{
+		mysqli_query($conn,"CREATE DATABASE IF NOT EXISTS ".$d.";");
+		$db_selected = mysqli_select_db($conn,$d);
+	}
+    else
+		mysqli_query($conn,"DROP TABLE books;");
+	if (!$db_selected)
+	{
+		exit('Error select '.$d.' database: ' .mysqli_error($conn) );		
+	}
+	$sql = "CREATE TABLE IF NOT EXISTS ".MYTABLE." (
+		id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,".$GLOBALS['MYFIELDS'][0].
+		" TEXT NOT NULL,".$GLOBALS['MYLANGFIELDS'][0].
+		" TINYTEXT,".$GLOBALS['MYFIELDS'][1].
+		" TEXT,".$GLOBALS['MYLANGFIELDS'][1].
+		" TINYTEXT,".$GLOBALS['MYNOLANGFIELDS'][0].
+		" TINYTEXT
+	)engine=myisam ;";
+	if (!mysqli_query($conn,$sql))
+	{
+		exit('Error creating '.MYTABLE.' table: ' .mysqli_error($conn) );		
+	}
+	$ff = fopen($f, "r");
+	if (!$ff)
+		exit("Error open file : ".$f."<br>");
+	$fline = fgets($ff);
+	while (!feof($ff))
+	{		
+		$frow = explode(";",$fline);
+		
+		$five = explode(PHP_EOL,$frow[5]);
+		$strv = "'".$frow[1]."','".$frow[2]."','".$frow[3]."','".$frow[4]."','".$five[0]."'";
+	    $sql = "INSERT INTO ".MYTABLE." (author,langa,title,langt,type) VALUES (".$strv.");";
+		$err = mysqli_query($conn,$sql);
+		if (!$err) 
+		{
+			exit("Error Insert MySQL : ".mysqli_error($conn)." ".$sql."<br>");
+		}
+		$fline = fgets($ff);
+	}
+	fclose($ff);
+	echo "done";
+}   
 /* main entry of the server program
  check the request : addBook, delBook, chgBook,
      displaybooks which correspond to the given criteria,
      searchBook return only the lines corresponding to the criteria
 */
+mb_internal_encoding("utf-8");
 switch($_REQUEST['action'])
 {
 case 'displaybooks':
@@ -452,7 +591,6 @@ case 'displaybooks':
 case 'addBook':
     addBook($_REQUEST[$GLOBALS['MYFIELDS'][1]],$_REQUEST[$GLOBALS['MYLANGFIELDS'][1]],
     $_REQUEST[$GLOBALS['MYFIELDS'][0]],$_REQUEST[$GLOBALS['MYLANGFIELDS'][0]],
-    $_REQUEST[$GLOBALS['MYFIELDS'][2]],$_REQUEST[$GLOBALS['MYLANGFIELDS'][2]],
     $_REQUEST[$GLOBALS['MYNOLANGFIELDS'][0]]);
     break;
 case 'delBook':
@@ -461,13 +599,18 @@ case 'delBook':
 case 'chgBook':
     chgBook($_REQUEST['rowid'],
     $_REQUEST[$GLOBALS['MYFIELDS'][1]],$_REQUEST[$GLOBALS['MYLANGFIELDS'][1]],
-    $_REQUEST[$GLOBALS['MYFIELDS'][1]],$_REQUEST[$GLOBALS['MYLANGFIELDS'][0]],
-    $_REQUEST[$GLOBALS['MYFIELDS'][2]],$_REQUEST[$GLOBALS['MYLANGFIELDS'][2]],
+    $_REQUEST[$GLOBALS['MYFIELDS'][0]],$_REQUEST[$GLOBALS['MYLANGFIELDS'][0]],
     $_REQUEST[$GLOBALS['MYNOLANGFIELDS'][0]]); 
     break;
 case 'searchBook':
     searchBook($_REQUEST['criteria'],$_REQUEST['text'],$_REQUEST['lang']);    
     break;
+case 'backup':
+	backup($_REQUEST['db']);
+	break;
+case 'restore':
+	restore($_REQUEST['file'],$_REQUEST['db']);
+	break;
 default:
     echo "Error : Wrong action : ".$_REQUEST['action']."<br>";
     break;
