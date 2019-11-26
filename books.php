@@ -216,7 +216,8 @@ function displaybooks($sel1, $sel2, $store)
                    $GLOBALS['MYLANGFIELDS'][1]=>$b[$GLOBALS['MYLANGFIELDS'][1]],
                    $GLOBALS['MYFIELDS'][0]=>$b[$GLOBALS['MYFIELDS'][0]],
                    $GLOBALS['MYLANGFIELDS'][0]=>$b[$GLOBALS['MYLANGFIELDS'][0]],
-                   $GLOBALS['MYNOLANGFIELDS'][0]=>$b[$GLOBALS['MYNOLANGFIELDS'][0]]);
+                   $GLOBALS['MYNOLANGFIELDS'][0]=>$b[$GLOBALS['MYNOLANGFIELDS'][0]],
+                   'date'=>$b['date']);
         array_push($J,$a);
         if ($store == 1)
         //if ($file)
@@ -275,12 +276,11 @@ function addBook($name, $langt, $author, $langa, $type)
         exit('Error select '.MYDB.' database: ' .mysqli_error($conn) );		
     }
     $sql = "CREATE TABLE IF NOT EXISTS ".MYTABLE." (
-        id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,".$GLOBALS['MYFIELDS'][0].
-        " TEXT NOT NULL,".$GLOBALS['MYLANGFIELDS'][0].
-        " TINYTEXT,".$GLOBALS['MYFIELDS'][1].
-        " TEXT,".$GLOBALS['MYLANGFIELDS'][1].
-        " TINYTEXT,".$GLOBALS['MYNOLANGFIELDS'][0].
-        " TINYTEXT
+		id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,".$GLOBALS['MYFIELDS'][0]." TEXT NOT NULL,"
+		.$GLOBALS['MYLANGFIELDS'][0]." TINYTEXT,"
+		.$GLOBALS['MYFIELDS'][1]." TEXT,"
+		.$GLOBALS['MYLANGFIELDS'][1]." TINYTEXT,"
+		.$GLOBALS['MYNOLANGFIELDS'][0]." TINYTEXT,date date
     )engine=myisam ;";
     if (!mysqli_query($conn,$sql))
     {
@@ -300,8 +300,8 @@ function addBook($name, $langt, $author, $langa, $type)
         $strn .= $GLOBALS['MYLANGFIELDS'][$i].",";
         $strv .= "'".$langs[$i]."',";
     }
-    $strn .= $GLOBALS['MYNOLANGFIELDS'][0];
-    $strv .= "'".$type."'";
+    $strn .= $GLOBALS['MYNOLANGFIELDS'][0]; //.',date';
+    $strv .= "'".$type."'";//.CURDATE();
     $sql = "INSERT INTO ".MYTABLE." (".$strn.") VALUES (".$strv.");";
     $err = mysqli_query($conn,$sql);
     if (!$err) 
@@ -466,7 +466,8 @@ function searchBook($criteria,$text,$lang)
 							$GLOBALS['MYLANGFIELDS'][1]=>$b[$GLOBALS['MYLANGFIELDS'][1]],
 							$GLOBALS['MYFIELDS'][0]=>$b[$GLOBALS['MYFIELDS'][0]],
 							$GLOBALS['MYLANGFIELDS'][0]=>$b[$GLOBALS['MYLANGFIELDS'][0]],
-							$GLOBALS['MYNOLANGFIELDS'][0]=>$b[$GLOBALS['MYNOLANGFIELDS'][0]]);
+							$GLOBALS['MYNOLANGFIELDS'][0]=>$b[$GLOBALS['MYNOLANGFIELDS'][0]],
+							"date"=>$b['date']);
 					array_push($J,$a);
 				}
 			}
@@ -486,7 +487,8 @@ function searchBook($criteria,$text,$lang)
 							$GLOBALS['MYLANGFIELDS'][1]=>$b[$GLOBALS['MYLANGFIELDS'][1]],
 							$GLOBALS['MYFIELDS'][0]=>$b[$GLOBALS['MYFIELDS'][0]],
 							$GLOBALS['MYLANGFIELDS'][0]=>$b[$GLOBALS['MYLANGFIELDS'][0]],
-							$GLOBALS['MYNOLANGFIELDS'][0]=>$b[$GLOBALS['MYNOLANGFIELDS'][0]]);
+							$GLOBALS['MYNOLANGFIELDS'][0]=>$b[$GLOBALS['MYNOLANGFIELDS'][0]],
+							"date"=>$b['date']);
 					array_push($J,$a);
 				}	
 			}
@@ -522,7 +524,8 @@ function backup($d)
 		$nf .= $b['langa'].";";
 		$nf .= $b['title'].";";
 		$nf .= $b['langt'].";";
-		$nf .= $b['type'].PHP_EOL;
+		$nf .= $b['type'].";";
+		$nf .= $b['date'].PHP_EOL;
 		fwrite ($fp,$nf);
 	}
 	
@@ -544,14 +547,13 @@ function restore($f,$d)
 	{
 		exit('Error select '.$d.' database: ' .mysqli_error($conn) );		
 	}
-	$sql = "CREATE TABLE IF NOT EXISTS ".MYTABLE." (
-		id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,".$GLOBALS['MYFIELDS'][0].
-		" TEXT NOT NULL,".$GLOBALS['MYLANGFIELDS'][0].
-		" TINYTEXT,".$GLOBALS['MYFIELDS'][1].
-		" TEXT,".$GLOBALS['MYLANGFIELDS'][1].
-		" TINYTEXT,".$GLOBALS['MYNOLANGFIELDS'][0].
-		" TINYTEXT
-	)engine=myisam ;";
+    $sql = "CREATE TABLE IF NOT EXISTS ".MYTABLE." (
+		id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,".$GLOBALS['MYFIELDS'][0]." TEXT NOT NULL,"
+		.$GLOBALS['MYLANGFIELDS'][0]." TINYTEXT,"
+		.$GLOBALS['MYFIELDS'][1]." TEXT,"
+		.$GLOBALS['MYLANGFIELDS'][1]." TINYTEXT,"
+		.$GLOBALS['MYNOLANGFIELDS'][0]." TINYTEXT,date date
+    )engine=myisam ;";		
 	if (!mysqli_query($conn,$sql))
 	{
 		exit('Error creating '.MYTABLE.' table: ' .mysqli_error($conn) );		
@@ -564,9 +566,9 @@ function restore($f,$d)
 	{		
 		$frow = explode(";",$fline);
 		
-		$five = explode(PHP_EOL,$frow[5]);
-		$strv = "'".$frow[1]."','".$frow[2]."','".$frow[3]."','".$frow[4]."','".$five[0]."'";
-	    $sql = "INSERT INTO ".MYTABLE." (author,langa,title,langt,type) VALUES (".$strv.");";
+		$five = explode(PHP_EOL,$frow[6]);
+		$strv = "'".$frow[1]."','".$frow[2]."','".$frow[3]."','".$frow[4]."','".$five[0]."'".$five[5]."'";
+	    $sql = "INSERT INTO ".MYTABLE." (author,langa,title,langt,type,date) VALUES (".$strv.");";
 		$err = mysqli_query($conn,$sql);
 		if (!$err) 
 		{
