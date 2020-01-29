@@ -2,7 +2,7 @@
   configuration 
 *****************/
 // place of the server side of the application
-var serverIP = "http://localhost/books/";
+var serverIP = "http://localhost/booksServer/";
 
 // number of rows for textarea of language dependent fields
 var ROWS_IN_TEXT = 3;
@@ -11,24 +11,24 @@ var ROWS_IN_TEXT = 3;
 var COLS = [28,28,10];
 
 // names of language dependent fields
-var MYFIELDS = ['author','title','shortd'];
+var MYFIELDS = ['author','title'];
 
 // names of not language dependent fields
 var MYNOLANGFIELDS = ['type'];
 
 // server names of languages fields
-var MYLANGFIELDS = ['langa','langt','langs'];
+var MYLANGFIELDS = ['langa','langt'];
 
 // languages short cuts and name to be used in options down list
-var MYLANGS = ['en','ro','ru','fr','he'];
-var LANGOPTIONS = ['English','Romanian','Russian','French','Hebrew'];
+var MYLANGS = ['he','ro','ru','fr','en'];
+var LANGOPTIONS = ['Hebrew','Romanian','Russian','French','English'];
 
 // options for no language dependent field
 var MYKINDS = [['novel','poetry','cooking','popular','fiction',
                'stories','history','album','manual','thriller','philosophy']];
 
 // default values
-var DEFAULTLANG = 'en';
+var DEFAULTLANG = 'he';
 // array length is the same with MYLANGFIELDS and MYFIELDS
 var DEFAULTLANGS = [];
 var DEFAULTKINDS = [];
@@ -46,10 +46,13 @@ for (var j = 0; j < MYKINDS.length; j++)
 {
     DEFAULTKINDS[j] = MYKINDS[j][0];
 }
+
 function initHTML()
 {
     /* initialize table header */
-    var tr = document.getElementById('tbl').tHead.children[0];
+    var tb = document.getElementById('tbl');   
+    var tr = tb.tHead.children[0];
+
     var th;
     for (var i = 0; i < MYFIELDS.length; i++)
     {
@@ -58,16 +61,20 @@ function initHTML()
         th.innerHTML = MYFIELDS[i].charAt(0).toUpperCase() + MYFIELDS[i].slice(1);
         tr.appendChild(th);
     }
+    
     for (var i = 0; i < MYNOLANGFIELDS.length; i++)
     {
         th = document.createElement('th');
         th.innerHTML = MYNOLANGFIELDS[i].charAt(0).toUpperCase() + MYNOLANGFIELDS[i].slice(1);
         tr.appendChild(th);
-    }    
+    } 
+    th = document.createElement('th');
+    th.innerHTML ='Date';
+    tr.appendChild(th);       
     th = document.createElement('th');
     th.innerHTML ='Cmd';
     tr.appendChild(th);
-
+	
     var opt;
     var t;
     /* initialize sorting options */
@@ -80,7 +87,16 @@ function initHTML()
         opt.setAttribute("value",MYFIELDS[i]);
         tr.appendChild(opt);
     }
-
+    opt = document.createElement("option");        
+    t = document.createTextNode("Sort by date up");              
+    opt.appendChild(t);
+    opt.setAttribute("value","date >");
+    tr.appendChild(opt);
+    opt = document.createElement("option");        
+    t = document.createTextNode("Sort by date down");              
+    opt.appendChild(t);
+    opt.setAttribute("value","date <");
+    tr.appendChild(opt);    
     /* initialize filter options */
     tr = document.getElementById('filter');
     for (var j = 0; j < MYNOLANGFIELDS.length; j++)
@@ -121,21 +137,25 @@ function initHTML()
         opt.setAttribute("value",MYFIELDS[i]);
         tr.appendChild(opt);
     }
+    opt = document.createElement("option");        
+    t = document.createTextNode("Search date");              
+    opt.appendChild(t);
+    opt.setAttribute("value","date");
+    tr.appendChild(opt);    
 }
 
 /*
 Object dealing with the typed text - in any of the given languages 
 On 'add' event sends a request to the server with the input data 
 */
-function debug(text,param,paramtype)
+function debug(doit,text,param,paramtype)
 {
-    var doit = true;
     if (doit)
     {    
         if (paramtype == 'text')
             console.log(text+"="+param);
         else
-           console.log("text : %o", param);
+           console.log(text+": %o", param);
    }       
 }
 function createCORSRequest(method, url) 
@@ -160,8 +180,6 @@ function createCORSRequest(method, url)
     xhr = null;
 
   }
-  if (xhr != null)
-  	xhr.response.addHeader("Access-Control-Allow-Origin", "*");
 
   return xhr;
 }
@@ -234,7 +252,8 @@ var manageText =
     // typ = command
     // rowid == id of the record in MySQL, used by chg command
     getText     : function(index,typ,rowid)
-    {        
+    {  
+		debug(true,"getText typ",typ,'text');		      
         lang = this.langs.slice(0);
         if (typ == 'nothing')
             return false;
@@ -268,7 +287,7 @@ var manageText =
             s = s + '&' + MYLANGFIELDS[i] + '=' + this.langs[i];
         for (var i = 0; i < MYNOLANGFIELDS.length; i++)
             s = s + "&" + MYNOLANGFIELDS[i] + '=' + this.kind[i];
-        debug("s",s,'text');
+	
         // store locally the class languages - hhtp response is executed into other context
         this.init();
         // send request to the server
@@ -276,6 +295,7 @@ var manageText =
             url = serverIP+"books.php?action=addBook"+s;
         else
             url = serverIP+"books.php?action=chgBook&rowid="+rowid+s;
+		debug(true,"getText url",url,'text');            
         var xmlhttp = createCORSRequest('GET', url);
 		if (!xmlhttp) 
   			throw new Error('CORS not supported');
@@ -284,12 +304,12 @@ var manageText =
         {
            if (xmlhttp.readyState==4 && xmlhttp.status==200) 
            {
-             debug("gettext response",xmlhttp.responseText,'text');
+             debug(false,"gettext response",xmlhttp.responseText,'text');
              // create an object with the inserted line parameters 
              updateLine(xmlhttp.responseText,typ,lang,index); 
            }
         }
-        debug("getText url",url,'text'); 
+ 
         xmlhttp.send(null);
         return false; // prevent further bubbling of event
     },
@@ -331,7 +351,45 @@ var manageText =
         this.cap = !this.cap;
     }
 };  // manageText
-
+var backup =
+{
+	sendToServer: function(url)
+	{
+	    var xmlhttp = createCORSRequest('POST', url);
+		if (!xmlhttp) 
+  			throw new Error('CORS not supported');
+        xmlhttp.onreadystatechange=function() 
+        {               
+           if (xmlhttp.readyState==4 && xmlhttp.status==200) 
+           {
+               // on http response
+               // create a table - and its header
+               debug(false,"backup response",xmlhttp.responseText,'text');
+               // check errors of the server application
+               if (xmlhttp.responseText != "done")
+					throw new Error('Backup failed');
+           } // http response ready
+        } // http response function	
+        if (url != '')
+        {
+            xmlhttp.send(null);
+        }
+	},
+    store  : function(db)
+    {
+		var url = serverIP+"books.php?action=backup&db="+db+"";
+		debug(false,"store",url,'text');
+		this.sendToServer(url);
+        return false; // prevent further bubbling of event
+	},
+	restore : function(db,f)
+	{
+		var url = serverIP+"books.php?action=restore&db="+db+"&file="+f;
+		debug(false,"store",url,'text');
+		this.sendToServer(url);
+        return false; // prevent further bubbling of event
+	}
+};
 /*
 Object dealing with the display of the rows into the table 
 Take care of the display options 
@@ -382,7 +440,7 @@ var displayTable =
     },
     // makes a request to server to receive all the data to be displayed
     showLine    : function(start) 
-    {
+    {			
         // for any display, besides the first, remove the old one
         if (!start)
         {
@@ -401,7 +459,20 @@ var displayTable =
         else
         {
             if (this.sorting != 'filter') // all sorted by title or author
-                sel1 = this.sorting;
+            {
+				if (this.sorting == 'date <')
+				{
+					sel1 = 'date';
+					sel2 = 'down'; // descdending
+				}
+				else if (this.sorting == 'date >')
+				{
+					sel1 = 'date';
+					sel2 = 'up'; // ascdending
+				}
+				else 
+					sel1 = this.sorting;
+			}
             else
             {   // apply filter
                 if (this.lang != '') // check the language filter
@@ -410,7 +481,7 @@ var displayTable =
                     for (var i = 0; i < MYNOLANGFIELDS.length; i++)
                         if (this.kind[MYNOLANGFIELDS[i]] != '') // check the type filter
                         {
-                            sel2 = 'type.' + MYNOLANGFIELDS[i] +"." + this.kind[MYNOLANGFIELDS[i]];
+                            sel2 = 'type.' + this.kind[MYNOLANGFIELDS[i]];
                             break;
                         }
                 }
@@ -421,10 +492,10 @@ var displayTable =
                         if (this.kind[MYNOLANGFIELDS[i]] != '') // check the type filter
                         {
                             if (sel1 == 'none')
-                                sel1 = 'type.' + MYNOLANGFIELDS[i] +"." + this.kind[MYNOLANGFIELDS[i]];
+                                sel1 = 'type.' + this.kind[MYNOLANGFIELDS[i]];
                             else
                             {
-                                sel2 = 'type.' + MYNOLANGFIELDS[i] +"." + this.kind[MYNOLANGFIELDS[i]];
+                                sel2 = 'type.' + this.kind[MYNOLANGFIELDS[i]];
                                 break;
                             }
                         }
@@ -433,12 +504,12 @@ var displayTable =
             } // else of filter
         } // else of start
         if (!start || (start && DISPLAY_ON_BEGIN))
-        {
-            debug("showLine sel1",sel1+" sel2="+sel2,'text');            
+        {           
             if (sel1 != 'none') 
             {
-                seld = "&sel1="+sel1+"&sel2="+sel2+"&store="+this.store;
-                url = serverIP+"books.php?action=displaybooks"+seld;  
+                seld = "&sel1="+sel1+"&sel2="+sel2+"&store="+this.store;                
+                url = serverIP+"books.php?action=displaybooks"+seld; 
+                debug(false,"url=",url,'text'); 
             }
             else
                 alert("You need to choose !!");
@@ -453,19 +524,20 @@ var displayTable =
   			throw new Error('CORS not supported');
         xmlhttp.onreadystatechange=function() 
         {               
-	       var rownumber;
+	       var rownumber = 0;
+	       var len = 0;
            var table = document.getElementById("tbl");
            if (xmlhttp.readyState==4 && xmlhttp.status==200) 
            {
                // on http response
                // create a table - and its header
-               debug("showLine response",xmlhttp.responseText,'text');
-               var len;
+               debug(false,"showLine response",xmlhttp.responseText,'text');
                if (!start)
                {
                     while (table.rows.length > 1)
                         setTimeout(onTimeoutDelete(table),2); // 5 msec
                }
+               debug(false,"resp=",xmlhttp.responseText.substring(0,2));
                // check errors of the server application
                if (xmlhttp.responseText.substring(0,2) == "[{")
                {
@@ -500,14 +572,17 @@ var displayTable =
 	           rownumber = len;
                len = 1;
 	       }
-	       row = table.insertRow(rownumber);
-           setTimeout(addLine(row,len,DEFAULTLANGS),2);
-           addDoUndo(row,len,["Add",'Undo'],0);   
-     
-           document.getElementById("f1").options[0].selected = true;
-           document.getElementById("filterlang").options[0].selected = true;
-           for (var i = 0; i < MYNOLANGFIELDS.length; i++)
-                document.getElementById("filtertype"+MYNOLANGFIELDS[i]).options[0].selected = true;
+	       if (rownumber != 0)
+	       {
+				row = table.insertRow(rownumber);										
+				setTimeout(addLine(row,len,DEFAULTLANGS),2);
+				addDoUndo(row,len,["Add",'Undo'],0);   
+			
+				document.getElementById("f1").options[0].selected = true;
+				document.getElementById("filterlang").options[0].selected = true;
+				for (var i = 0; i < MYNOLANGFIELDS.length; i++)
+						document.getElementById("filtertype"+MYNOLANGFIELDS[i]).options[0].selected = true;
+			}
         } // http response function
       
 
@@ -574,23 +649,27 @@ function onTimeoutDelete(table)
         table.deleteRow(1);
     }         
 }; 
-function onTimeoutChg(number,table,rowid,langs)
+function onTimeoutChg(number,table,rowid,langs,kind)
 {
      table.deleteRow(table.rows.length-1);
      var cellContent = [];
-     var i;
-     for (var i = 0; i < MYFIELDS.length; i++)
+     var i,j;
+     for (i = 0; i < MYFIELDS.length; i++)
      {
          cellContent[i] = table.rows[number].cells[i+1].innerHTML;
      }
-     for (var j = 0; j < MYNOLANGFIELDS.length; j++)
+     for (j = 0; j < MYNOLANGFIELDS.length; j++)
      {
          cellContent[i+j] = table.rows[number].cells[i+j+1].innerHTML;
      }
+
      table.deleteRow(number);
      row = table.insertRow(number);
      for (var k = 0; k < manageText.langs.length; k++)
         manageText.langs[k] = langs[k];
+     for (var k = 0; k < manageText.kind.length; k++)
+        manageText.kind[k] = kind[k];
+                        
      setTimeout(addLine(row,number,langs),2);  
      addDoUndo(row,number,["Do",'Undo'],rowid);
      for (var k = 0; k < MYFIELDS.length; k++)
@@ -599,7 +678,12 @@ function onTimeoutChg(number,table,rowid,langs)
          {
             $("#"+MYFIELDS[k]).css("direction","rtl"); 
             $("#"+MYFIELDS[k]).css("textAlign","right");
-         } 
+         }
+         else
+         {
+			$("#"+MYFIELDS[k]).css("direction","ltr"); 
+            $("#"+MYFIELDS[k]).css("textAlign","left");
+		 } 
          $("#"+MYFIELDS[k]).val(cellContent[k]);
          $("#"+MYLANGFIELDS[k]).val(langs[k]);
      }
@@ -608,7 +692,7 @@ function onTimeoutChg(number,table,rowid,langs)
 }; 
 // number is the no into html table
 // row is the id into mySQL database
-function choosecmd(number,row,cmd,langs) 
+function choosecmd(number,row,cmd,langs,kind) 
 {
     if (cmd == "nothing")
         return;
@@ -635,7 +719,7 @@ function choosecmd(number,row,cmd,langs)
     else
     {
         var table = document.getElementById("tbl");
-        setTimeout(onTimeoutChg(number,table,row,langs),5); // 5 msec
+        setTimeout(onTimeoutChg(number,table,row,langs,kind),5); // 5 msec
     }
 }
 // fired on selection of the book kind
@@ -662,7 +746,12 @@ function chooselang(field,tlang)
            break;
         }
     }
-    var elem = document.getElementById(field);     
+    var elem = document.getElementById(field);  
+    if (tlang == "none")
+    {
+		document.getElementById("he").style.display = "block";
+		return false; // prevent further bubbling of event		
+	}   
     if (tlang == "he") 
     {
         elem.setSelectionRange(elem.cols-1, elem.cols-1);
@@ -680,6 +769,7 @@ function chooselang(field,tlang)
     case "en":
         manageText.lowletters = [];
         manageText.capletters = [];
+		return false; // prevent further bubbling of event        
         break;
     case "ro":
         manageText.lowletters = manageText.ro[0];
@@ -751,12 +841,12 @@ function createTypeSelection(i)
     return sel;
 }
 
-function addCommand(cmds,number,rowid,param,row)
+function addCommand(cmds,number,rowid,param,oldtype,row)
 {
     // add the command button - "Del/Chg"
     var sel = document.createElement("select");
     
-    sel.onchange = function(){choosecmd(number,rowid,sel.value,param);};
+    sel.onchange = function(){choosecmd(number,rowid,sel.value,param,oldtype);};
     for (var i = 0; i < cmds.length; i++)
     {
         var opt;
@@ -768,7 +858,7 @@ function addCommand(cmds,number,rowid,param,row)
         opt = createOption(cmds[i][0],cmds[i][1]);
         sel.appendChild(opt);
     }
-    row.insertCell(MYFIELDS.length+MYNOLANGFIELDS.length+1).appendChild(sel);
+    row.insertCell(MYFIELDS.length+MYNOLANGFIELDS.length+2).appendChild(sel);
 }
 // rowid - MySQL index
 // typ - command
@@ -784,7 +874,7 @@ function updateLine(rowid,typ,lang,index)
           newline[MYLANGFIELDS[i]] = lang[i];
       for (var i = 0; i < MYNOLANGFIELDS.length; i++)
           newline[MYNOLANGFIELDS[i]] = $('#seltype'+i).val();
-      debug("updateLine",newline,'object');
+      debug(false,"updateLine",newline,'object');
       var table = document.getElementById("tbl");
       if (DISPLAY_ON_BEGIN || (typ == 'Chg'))
       {      
@@ -797,11 +887,11 @@ function updateLine(rowid,typ,lang,index)
             displayLine(row,index,newline);
             // add a new line for insertion
             if (typ == "Add")
-               newind = index;
+               newind = index + 1;
             else
                newind  = table.rows.length-1;
             setTimeout(console.log("wait"),2);
-            row = table.insertRow(newind+1);
+            row = table.insertRow(newind);
             setTimeout(addLine(row,newind+1,DEFAULTLANGS),2); 
             addDoUndo(row,newind,["Add",'Undo'],0); 
       }
@@ -827,6 +917,7 @@ function displayLine(row, number, j)
     row.insertCell(0).innerHTML = number;
     var cell;
     var param = [];
+    var param1 = [];
     for (var i = 0; i < MYFIELDS.length; i++)
     {
         var val = j[MYFIELDS[i]];
@@ -868,7 +959,7 @@ function displayLine(row, number, j)
                     }
                     // he does not need capitalization
                     val = c + val.slice(1);
-                    console.log(MYFIELDS[i]+"="+val);
+                    //console.log(MYFIELDS[i]+"="+val);
                 }
             }
         }
@@ -881,9 +972,13 @@ function displayLine(row, number, j)
         cell = row.insertCell(i);
         cell.style.textAlign = "center";
         cell.innerHTML = j[MYNOLANGFIELDS[k]];
+        param1[k] = j[MYNOLANGFIELDS[k]];
     }
+    cell = row.insertCell(i);
+    cell.style.textAlign = "center";
+    cell.innerHTML = j['date'];
     var cmds = [['Del','delBook'],['Chg','chgBook']];
-    addCommand(cmds,number,j.rowid,param,row);
+    addCommand(cmds,number,j.rowid,param,param1,row);
 }
 // create input fields
 function createInput(field, colw)
@@ -892,6 +987,16 @@ function createInput(field, colw)
     inp.rows = ROWS_IN_TEXT;
     inp.cols = colw;
     inp.id = field;
+    if (DEFAULTLANG == "he")
+	{
+		inp.setSelectionRange(colw-1, colw-1);
+		inp.style.direction = "rtl";
+	}
+	else
+	{
+		inp.setSelectionRange(0, 0);
+		inp.style.direction = "ltr";
+	}
     
     return inp;
 }  
@@ -910,6 +1015,8 @@ function addLine(row,index,langs)
     }
     for (var i = 0; i < MYNOLANGFIELDS.length; i++)
         row.insertCell(MYFIELDS.length*2+1+i).appendChild(createTypeSelection(i));
+    var x = row.insertCell(MYFIELDS.length*2+MYNOLANGFIELDS.length+1); 
+    x.innerHTML = "yyyy-mm-dd";   
 }
 // add the command button - "Add/Do"
 // row - html row object
@@ -927,7 +1034,7 @@ function addDoUndo(row,index,typ,rowid)
     sel.appendChild(opt);
     opt = createOption(typ[1],typ[1]);
     sel.appendChild(opt);
-    row.insertCell(MYFIELDS.length*2+MYNOLANGFIELDS.length+1).appendChild(sel);
+    row.insertCell(MYFIELDS.length*2+MYNOLANGFIELDS.length+2).appendChild(sel);
 }
 /*
 Object dealing with the search possibility
@@ -961,7 +1068,12 @@ var searchBook =
                 break;
             }
         }
-        var elem = document.getElementById(field);     
+        var elem = document.getElementById(field);
+		if (this.lang == "none") 
+		{
+			document.getElementById("he").style.display = "block";
+			return false; 			
+		}    
         if (this.lang == "he") 
         {
             elem.setSelectionRange(elem.cols-1, elem.cols-1);
@@ -975,31 +1087,37 @@ var searchBook =
         elem.focus();        
         // set class parameter according to the chosen language
         // and make visible its box
-        switch (this.tlang)
-        {
-        case "en":
-            manageText.en();
-            break;
-        case "ro":
-            manageText.ro();
-            break;
-        case "fr":
-            manageText.fr();
-            break;
-        case "ru":
-            manageText.ru();
-            break;
-        case "he":
-            manageText.he();
-            break;
-        }
+		switch (this.lang)
+		{
+		case "en":
+			manageText.lowletters = [];
+			manageText.capletters = [];
+			return false;
+		case "ro":
+			manageText.lowletters = manageText.ro[0];
+			manageText.capletters = manageText.ro[1];
+			break;
+		case "fr":
+			manageText.lowletters = manageText.fr[0];
+			manageText.capletters = manageText.fr[1];
+			break;
+		case "ru":
+			manageText.lowletters = manageText.ru[0];
+			manageText.capletters = manageText.ru[1];
+			break;
+		case "he":
+			manageText.lowletters = manageText.he[0];
+			manageText.capletters = manageText.he[1];
+			break;
+		}        
         document.getElementById(this.lang).style.display = "block";
         return false; 
     },
     searchBook  : function()
     {
         tosearch = document.getElementById("searchtext").value;
-        url = serverIP+"books.php?action=searchBook&lang="+this.lang+"&criteria="+this.criteria+"&text="+tosearch;        
+        url = serverIP+"books.php?action=searchBook&lang="+this.lang+"&criteria="+this.criteria+"&text="+tosearch;  
+        debug(false,"searchBook",url,'text');      
         var xmlhttp = createCORSRequest('GET', url);
 		if (!xmlhttp) 
   			throw new Error('CORS not supported');
@@ -1009,6 +1127,7 @@ var searchBook =
            {
                // on http response
                // create a table - and its header
+               debug(false,"searchBook response",xmlhttp.responseText,'text');
                var len;
                var table = document.getElementById("tbl");
                // check errors of the server application
@@ -1035,7 +1154,7 @@ var searchBook =
                    len = 1;
                }
                row = table.insertRow(len);
-               setTimeout(addLine(row,len,DEFAULTLANGS),2);
+               setTimeout(addLine(row,len,DEFAULTLANGS),2);                                     
                addDoUndo(row,len,["Add",'Undo'],0);         
                for (var i = 0; i < manageText.langs.length; i++)
                {

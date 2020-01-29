@@ -62,7 +62,10 @@ function compare_author($a, $b)
     
     return strcmp_from_utf8($a[$GLOBALS['MYFIELDS'][0]], $b[$GLOBALS['MYFIELDS'][0]]); 
 }
-
+function compare_date($a, $b) 
+{ 
+    return strnatcmp($a['date'], $b['date']);
+}
 function str_pad_unicode($str1, $pad_len1, $str2, $pad_len2,$dir = STR_PAD_RIGHT) 
 {
 	$str_new1 = mb_convert_encoding($str1, "UTF-8");
@@ -136,6 +139,7 @@ function displaybooks($sel1, $sel2, $store)
 		}
 		else $sql="SELECT * FROM ".MYTABLE.";"; 
 	}
+	else if ($sel1 == 'date') $sql="SELECT * FROM ".MYTABLE.";";
 	else
 	{
 		$typ1 = substr($sel1,5,strlen($sel1) - 5);
@@ -160,13 +164,18 @@ function displaybooks($sel1, $sel2, $store)
         else
 			array_push($array_to_fetch,$row);
     }
+    //echo "count=".count($array_to_sort)." sel1=".$sel1."<br>";
     // sort alphabetically by name 
     if ($sel1 == 'title')
-        usort($array_to_sort, 'compare_title');
+       usort($array_to_sort, 'compare_title');
     else if ($sel1 == 'author')
         usort($array_to_sort, 'compare_author');
+    else  
+		usort($array_to_sort, 'compare_date');
 	if (count($array_to_sort) == 0)
 		$array_to_sort = $array_to_fetch;
+	if ($sel2 == 'down') 
+		$array_to_sort = array_reverse($array_to_sort);	
     $J = array();
     if ($store == 1)
     {
@@ -256,6 +265,7 @@ function displaybooks($sel1, $sel2, $store)
 // check the filters
 function fit($row, $sel1, $sel2)
 {
+	if ($sel1 == 'date') return true;
     if (($sel1 == $GLOBALS['MYFIELDS'][0]) || ($sel1 == $GLOBALS['MYFIELDS'][1]))
         return true;    
     return false;
@@ -300,8 +310,8 @@ function addBook($name, $langt, $author, $langa, $type)
         $strn .= $GLOBALS['MYLANGFIELDS'][$i].",";
         $strv .= "'".$langs[$i]."',";
     }
-    $strn .= $GLOBALS['MYNOLANGFIELDS'][0]; //.',date';
-    $strv .= "'".$type."'";//.CURDATE();
+    $strn .= $GLOBALS['MYNOLANGFIELDS'][0].',date';
+    $strv .= "'".$type."','".date('Y-m-d')."'";
     $sql = "INSERT INTO ".MYTABLE." (".$strn.") VALUES (".$strv.");";
     $err = mysqli_query($conn,$sql);
     if (!$err) 
@@ -310,6 +320,7 @@ function addBook($name, $langt, $author, $langa, $type)
     }
     // return as response the mySQL index of the latest inserted record
     echo mysqli_insert_id($conn);
+    //echo $sql."<br>";
 }
 // delete the record with the given id
 function delBook($id)
@@ -451,6 +462,22 @@ function searchBook($criteria,$text,$lang)
 			$tocompare = strtolower($b[$GLOBALS['MYFIELDS'][1]]);
 		else if (($criteria == $GLOBALS['MYFIELDS'][0]) && ($lang == $b[$GLOBALS['MYLANGFIELDS'][0]]))
 			$tocompare = strtolower($b[$GLOBALS['MYFIELDS'][0]]);
+		else if ($criteria == 'date')
+		{
+			if ($b['date'] == $text)
+			{
+				/* found a row, format it into a json format and store it */
+				$a = array('rowid'=>$b['id'],$GLOBALS['MYFIELDS'][1]=>$b[$GLOBALS['MYFIELDS'][1]],
+							$GLOBALS['MYLANGFIELDS'][1]=>$b[$GLOBALS['MYLANGFIELDS'][1]],
+							$GLOBALS['MYFIELDS'][0]=>$b[$GLOBALS['MYFIELDS'][0]],
+							$GLOBALS['MYLANGFIELDS'][0]=>$b[$GLOBALS['MYLANGFIELDS'][0]],
+							$GLOBALS['MYNOLANGFIELDS'][0]=>$b[$GLOBALS['MYNOLANGFIELDS'][0]],
+							"date"=>$b['date']);
+				array_push($J,$a);
+			}
+			else
+				continue;
+		}
 		else
 			continue;
 		if ($tocompare != '')
